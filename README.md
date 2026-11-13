@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/34820746/README.md)
 # buildaBoard
 
 A **zero-dependency, drop-in Web Component** (`<builda-board>`) for visually building **user roles, permission rules, and branching workflows** on an interactive dot-matrix blueprint canvas.
