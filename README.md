@@ -4,6 +4,22 @@ A **zero-dependency, drop-in Web Component** (`<builda-board>`) for visually bui
 
 Drop `src/builda-board.js` into any plain HTML page, React, Vue, or Svelte app, define your application's own blocks via `setPalette()`, and persist the resulting graph as clean JSON via the `blueprint-change` event.
 
+![buildaBoard workflow simulation in action](./assets/simulate-workflow.gif)
+
+---
+
+## See It in Action
+
+### Build Cards, Snap Blocks & Wire Flows
+Drag cards onto the dot-matrix canvas, snap typed blocks via `+ Add` menus or drag-and-drop, edit inline parameter chips, and wire output ports across cards:
+
+![Building cards, snapping blocks, and wiring ports in buildaBoard](./assets/build-and-wire.gif)
+
+### Paper Themes, Dot Grid Controls & Live JSON
+Switch between **Paper White**, **Warm Blueprint**, and **Dark Slate** themes, tune dot spacing and dot size in real time, and inspect live serialized JSON or copy the drop-in snippet:
+
+![Paper themes, dot grid controls, and live JSON inspector](./assets/themes-and-json.gif)
+
 ---
 
 ## What It Does
@@ -27,9 +43,13 @@ Drop `src/builda-board.js` into any plain HTML page, React, Vue, or Svelte app, 
 
 ```text
 buildaBoard/
-├── index.html            # Interactive demo playground (presets, themes, sliders, Live JSON drawer)
+├── assets/
+│   ├── build-and-wire.gif      # Card creation, block snapping & port wiring demo
+│   ├── simulate-workflow.gif   # Topological flow simulator demo
+│   └── themes-and-json.gif     # Paper themes, dot controls & live JSON drawer demo
+├── index.html                  # Interactive demo playground (presets, themes, sliders, Live JSON drawer)
 └── src/
-    └── builda-board.js   # <builda-board> Web Component (BuildaBoardElement)
+    └── builda-board.js         # <builda-board> Web Component (BuildaBoardElement)
 ```
 
 ---
