@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>buildaBoard — Drop-In Blueprint Workflow &amp; Role Builder</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --role: #7c3aed;
+      --emerald: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      block-size: 100%;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app-layout {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      block-size: 100dvh;
+      inline-size: 100%;
+      overflow: clip;
+    }
+
+    /* Clean, spacious top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-block-end: 1px solid var(--border);
+      z-index: 30;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      inline-size: 34px;
+      block-size: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: -0.03em;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 15.5px;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .controls-cluster {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .control-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .control-group label {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .control-group select,
+    .control-group input[type="range"] {
+      font-family: inherit;
+      font-size: 12.5px;
+      color: var(--text);
+    }
+
+    .control-group select {
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      background: var(--surface);
+      padding: 4px 8px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .control-group input[type="range"] {
+      inline-size: 70px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .val-readout {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--text);
+      min-inline-size: 34px;
+      font-size: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      block-size: 36px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .btn:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-primary {
+      background: var(--emerald);
+      border-color: var(--emerald);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.22);
+    }
+
+    .btn-primary:hover {
+      background: #047857;
+    }
+
+    .btn-active {
+      background: var(--accent-soft);
+      border-color: #93c5fd;
+      color: var(--accent);
+    }
+
+    /* Edge-to-edge workspace */
+    .workspace {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      padding: 0;
+      gap: 0;
+      min-block-size: 0;
+      block-size: 100%;
+    }
+
+    .workspace.drawer-open {
+      grid-template-columns: minmax(0, 1fr) 420px;
+    }
+
+    builda-board {
+      --bb-radius: 0px;
+      --bb-outer-border: none;
+      inline-size: 100%;
+      block-size: 100%;
+      min-block-size: 0;
+    }
+
+    /* Live JSON & Drop-In Integration Drawer */
+    .inspector-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--surface);
+      border-inline-start: 1px solid var(--border);
+      overflow: clip;
+      min-block-size: 0;
+    }
+
+    .workspace.drawer-open .inspector-drawer {
+      display: flex;
+    }
+
+    .drawer-header {
+      padding: 12px 16px;
+      border-block-end: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .drawer-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .drawer-tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .drawer-tab.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: #bfdbfe;
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      overscroll-behavior: contain;
+      padding: 14px 16px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .drawer-body pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .drawer-note {
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #f8fafc;
+      border-block-start: 1px solid var(--border);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace.drawer-open {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(420px, 1fr) 300px;
+      }
+
+      .inspector-drawer {
+        border-inline-start: none;
+        border-block-start: 1px solid var(--border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">bB</div>
+        <div class="brand-text">
+          <h1>buildaBoard</h1>
+          <p>Drop-in Blueprint Workflow &amp; User Role Builder</p>
+        </div>
+      </div>
+
+      <div class="controls-cluster">
+        <div class="control-group">
+          <label for="preset-select">Preset</label>
+          <select id="preset-select">
+            <option value="approval">Role-Based Approval Workflow</option>
+            <option value="onboarding">User Onboarding &amp; Access Provisioning</option>
+            <option value="blank">Blank Dot Canvas</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="theme-select">Paper</label>
+          <select id="theme-select">
+            <option value="paper">Paper White</option>
+            <option value="blueprint">Warm Blueprint</option>
+            <option value="dark">Dark Slate</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="dot-spacing">Spacing</label>
+          <input id="dot-spacing" type="range" min="12" max="32" step="2" value="20" />
+          <span class="val-readout" id="dot-spacing-val">20px</span>
+        </div>
+
+        <div class="control-group">
+          <label for="dot-size">Dot Size</label>
+          <input id="dot-size" type="range" min="1" max="3" step="0.25" value="1.5" />
+          <span class="val-readout" id="dot-size-val">1.5px</span>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="simulate-btn">
+          Simulate Workflow
+        </button>
+
+        <button type="button" class="btn" id="toggle-drawer-btn" aria-expanded="false">
+          Live JSON &amp; Drop-In Code
+        </button>
+      </div>
+    </header>
+
+    <div class="workspace" id="workspace">
+      <builda-board id="board"></builda-board>
+
+      <aside class="inspector-drawer" aria-label="Live JSON and Integration Code">
+        <div class="drawer-header">
+          <div class="drawer-tabs">
+            <button type="button" class="drawer-tab active" data-inspector-tab="json">Live JSON</button>
+            <button type="button" class="drawer-tab" data-inspector-tab="embed">Drop-In Snippet</button>
+          </div>
+          <button type="button" class="btn" id="copy-code-btn" style="block-size:30px; font-size:12px;">Copy</button>
+        </div>
+        <div class="drawer-body">
+          <pre id="inspector-code"></pre>
+        </div>
+        <div class="drawer-note">
+          Drop <code>src/builda-board.js</code> into any React, Vue, or plain HTML project. Listen to <code>blueprint-change</code> to save user workflows &amp; roles to your backend.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module">
+    import './src/builda-board.js';
+
+    const PRESETS = {
+      approval: {
+        metadata: { name: 'Role-Based Approval Workflow', version: '1.0' },
+        settings: {
+          dotSpacing: 20,
+          dotSize: 1.5,
+          dotOpacity: 0.9,
+          dotColor: '#a0a0a0',
+          canvasBg: '#ffffff',
+          snapToDots: true,
+        },
+        nodes: [
+          {
+            id: 'node-contributor',
+            type: 'role',
+            title: 'Contributor Role',
+            x: 60,
+            y: 40,
+            slots: {
+              permissions: [
+                { uid: 'p-1', id: 'perm-view-dashboard', type: 'permissions', label: 'View Dashboard', paramLabel: 'Scope', param: 'Own Workspace', icon: 'eye' },
+                { uid: 'p-2', id: 'perm-create-edit', type: 'permissions', label: 'Create & Edit Items', paramLabel: 'Target', param: 'Draft Articles', icon: 'edit' },
+              ],
+              conditions: [],
+            },
+          },
+          {
+            id: 'node-manager',
+            type: 'role',
+            title: 'Manager Role',
+            x: 60,
+            y: 340,
+            slots: {
+              permissions: [
+                { uid: 'p-3', id: 'perm-approve', type: 'permissions', label: 'Approve Requests', paramLabel: 'Limit', param: 'All Content', icon: 'check-circle' },
+                { uid: 'p-4', id: 'perm-manage-roles', type: 'permissions', label: 'Manage Team Roles', paramLabel: 'Level', param: 'Editorial Team', icon: 'users' },
+              ],
+              conditions: [
+                { uid: 'p-5', id: 'cond-2fa', type: 'conditions', label: '2FA Verified', paramLabel: 'Required', param: 'Yes', icon: 'lock' },
+              ],
+            },
+          },
+          {
+            id: 'node-review-wf',
+            type: 'workflow',
+            title: 'Content Review Workflow',
+            x: 490,
+            y: 140,
+            slots: {
+              triggers: [
+                { uid: 'p-6', id: 'trig-form-submit', type: 'triggers', label: 'Form Submitted', paramLabel: 'Form', param: 'Publish Request', icon: 'inbox' },
+              ],
+              conditions: [
+                { uid: 'p-7', id: 'cond-hours', type: 'conditions', label: 'During Business Hours', paramLabel: 'Window', param: '9 AM – 5 PM', icon: 'sun' },
+                { uid: 'p-8', id: 'cond-manager', type: 'conditions', label: 'Has Manager Role', paramLabel: 'Min Tier', param: 'Manager', icon: 'award' },
+              ],
+            },
+          },
+          {
+            id: 'node-publish-action',
+            type: 'action-group',
+            title: 'Publish & Notify',
+            x: 920,
+            y: 40,
+            slots: {
+              actions: [
+                { uid: 'p-9', id: 'act-update-status', type: 'actions', label: 'Update Record Status', paramLabel: 'Set To', param: 'Published', icon: 'check-square' },
+                { uid: 'p-10', id: 'act-chat-ping', type: 'actions', label: 'Send Slack / Teams Ping', paramLabel: 'Channel', param: '#content-live', icon: 'message' },
+              ],
+            },
+          },
+          {
+            id: 'node-revision-action',
+            type: 'action-group',
+            title: 'Return for Revision',
+            x: 920,
+            y: 340,
+            slots: {
+              actions: [
+                { uid: 'p-11', id: 'act-email', type: 'actions', label: 'Send Email Alert', paramLabel: 'To', param: 'Author', icon: 'mail' },
+                { uid: 'p-12', id: 'act-audit', type: 'actions', label: 'Write Audit Log', paramLabel: 'Detail', param: 'Reviewer Notes', icon: 'file-text' },
+              ],
+            },
+          },
+        ],
+        wires: [
+          { id: 'w-1', fromNodeId: 'node-contributor', fromPort: 'role-out', toNodeId: 'node-review-wf', toPort: 'in', label: 'Submits' },
+          { id: 'w-2', fromNodeId: 'node-manager', fromPort: 'role-out', toNodeId: 'node-review-wf', toPort: 'in', label: 'Authorizes' },
+          { id: 'w-3', fromNodeId: 'node-review-wf', fromPort: 'then', toNodeId: 'node-publish-action', toPort: 'in', label: 'Approved' },
+          { id: 'w-4', fromNodeId: 'node-review-wf', fromPort: 'else', toNodeId: 'node-revision-action', toPort: 'in', label: 'On Reject' },
+        ],
+      },
+
+      onboarding: {
+        metadata: { name: 'User Onboarding & Access Provisioning', version: '1.0' },
+        settings: {
+          dotSpacing: 20,
+          dotSize: 1.5,
+          dotOpacity: 0.9,
+          dotColor: '#a0a0a0',
+          canvasBg: '#ffffff',
+          snapToDots: true,
+        },
+        nodes: [
+          {
+            id: 'onb-trigger',
+            type: 'workflow',
+            title: 'New Hire Trigger',
+            x: 60,
+            y: 100,
+            slots: {
+              triggers: [
+                { uid: 'ob-1', id: 'trig-new-user', type: 'triggers', label: 'New User Signed Up', paramLabel: 'Source', param: 'HR Sync', icon: 'user-plus' },
+              ],
+              conditions: [
+                { uid: 'ob-2', id: 'cond-department', type: 'conditions', label: 'Same Department', paramLabel: 'Match', param: 'Operations', icon: 'building' },
+                { uid: 'ob-3', id: 'cond-2fa', type: 'conditions', label: '2FA Verified', paramLabel: 'Required', param: 'Yes', icon: 'lock' },
+              ],
+              actions: [
+                { uid: 'ob-4', id: 'act-assign-role', type: 'actions', label: 'Assign User Role', paramLabel: 'Role', param: 'Ops Member', icon: 'user-check' },
+              ],
+            },
+          },
+          {
+            id: 'onb-role',
+            type: 'role',
+            title: 'Grant Standard Role',
+            x: 490,
+            y: 100,
+            slots: {
+              permissions: [
+                { uid: 'ob-5', id: 'perm-view-dashboard', type: 'permissions', label: 'View Dashboard', paramLabel: 'Scope', param: 'Team Metrics', icon: 'eye' },
+                { uid: 'ob-6', id: 'perm-export', type: 'permissions', label: 'Export Reports', paramLabel: 'Format', param: 'CSV Only', icon: 'download' },
+              ],
+              conditions: [
+                { uid: 'ob-7', id: 'cond-hours', type: 'conditions', label: 'During Business Hours', paramLabel: 'Window', param: '8 AM – 6 PM', icon: 'sun' },
+              ],
+            },
+          },
+          {
+            id: 'onb-notify',
+            type: 'action-group',
+            title: 'Notify IT & HR',
+            x: 920,
+            y: 100,
+            slots: {
+              actions: [
+                { uid: 'ob-8', id: 'act-email', type: 'actions', label: 'Send Email Alert', paramLabel: 'To', param: 'Welcome Packet', icon: 'mail' },
+                { uid: 'ob-9', id: 'act-audit', type: 'actions', label: 'Write Audit Log', paramLabel: 'Detail', param: 'Access Granted', icon: 'file-text' },
+              ],
+            },
+          },
+        ],
+        wires: [
+          { id: 'ow-1', fromNodeId: 'onb-trigger', fromPort: 'then', toNodeId: 'onb-role', toPort: 'in', label: 'Provisions' },
+          { id: 'ow-2', fromNodeId: 'onb-role', fromPort: 'role-out', toNodeId: 'onb-notify', toPort: 'in', label: 'Then' },
+        ],
+      },
+
+      blank: {
+        metadata: { name: 'Blank Dot Canvas', version: '1.0' },
+        settings: {
+          dotSpacing: 20,
+          dotSize: 1.5,
+          dotOpacity: 0.9,
+          dotColor: '#a0a0a0',
+          canvasBg: '#ffffff',
+          snapToDots: true,
+        },
+        nodes: [],
+        wires: [],
+      },
+    };
+
+    const PAPER_THEMES = {
+      paper: { attr: '', canvasBg: '#ffffff', dotColor: '#a0a0a0', dotOpacity: 0.95 },
+      blueprint: { attr: '', canvasBg: '#f6f8fc', dotColor: '#8ba3c7', dotOpacity: 0.9 },
+      dark: { attr: 'dark', canvasBg: '#0f172a', dotColor: '#64748b', dotOpacity: 0.65 },
+    };
+
+    const EMBED_SNIPPET = `<!-- 1. Include the zero-dependency module -->
+<script type="module" src="./src/builda-board.js"><\/script>
+
+<!-- 2. Drop the element anywhere -->
+<builda-board id="workflow-builder" style="height: 680px;"></builda-board>
+
+<script type="module">
+  const board = document.getElementById('workflow-builder');
+
+  // 3. Expose your app's own roles, triggers, conditions, and actions
+  board.setPalette({
+    permissions: [
+      { id: 'billing-read', type: 'permissions', label: 'View Invoices', paramLabel: 'Scope', defaultParam: 'All Accounts', icon: 'eye' }
+    ],
+    triggers: [
+      { id: 'invoice-paid', type: 'triggers', label: 'Invoice Paid', paramLabel: 'Min', defaultParam: '$500', icon: 'inbox' }
+    ],
+    conditions: [
+      { id: 'vip-tier', type: 'conditions', label: 'Customer Tier', paramLabel: 'Tier', defaultParam: 'Enterprise', icon: 'award' }
+    ],
+    actions: [
+      { id: 'grant-vip', type: 'actions', label: 'Unlock Feature Flag', paramLabel: 'Flag', defaultParam: 'priority-support', icon: 'zap' }
+    ]
+  });
+
+  // 4. Listen for visual changes and persist JSON
+  board.addEventListener('blueprint-change', (e) => {
+    console.log('Updated blueprint:', e.detail);
+  });
+<\/script>`;
+
+    const board = document.getElementById('board');
+    const workspace = document.getElementById('workspace');
+    const presetSelect = document.getElementById('preset-select');
+    const themeSelect = document.getElementById('theme-select');
+    const dotSpacingInput = document.getElementById('dot-spacing');
+    const dotSpacingVal = document.getElementById('dot-spacing-val');
+    const dotSizeInput = document.getElementById('dot-size');
+    const dotSizeVal = document.getElementById('dot-size-val');
+    const simulateBtn = document.getElementById('simulate-btn');
+    const toggleDrawerBtn = document.getElementById('toggle-drawer-btn');
+    const inspectorCode = document.getElementById('inspector-code');
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+
+    let inspectorMode = 'json';
+
+    function refreshInspector() {
+      if (inspectorMode === 'json') {
+        inspectorCode.textContent = JSON.stringify(board.getBlueprint(), null, 2);
+      } else {
+        inspectorCode.textContent = EMBED_SNIPPET;
+      }
+    }
+
+    function applyTheme(themeKey) {
+      const t = PAPER_THEMES[themeKey] || PAPER_THEMES.paper;
+      if (t.attr) board.setAttribute('theme', t.attr);
+      else board.removeAttribute('theme');
+      board.setDotSettings({
+        canvasBg: t.canvasBg,
+        dotColor: t.dotColor,
+        dotOpacity: t.dotOpacity,
+      });
+    }
+
+    customElements.whenDefined('builda-board').then(() => {
+      board.setBlueprint(PRESETS.approval);
+      refreshInspector();
+    });
+
+    board.addEventListener('blueprint-change', (e) => {
+      const s = e.detail?.settings;
+      if (s) {
+        dotSpacingInput.value = s.dotSpacing;
+        dotSpacingVal.textContent = `${s.dotSpacing}px`;
+        dotSizeInput.value = s.dotSize;
+        dotSizeVal.textContent = `${s.dotSize}px`;
+      }
+      refreshInspector();
+    });
+
+    presetSelect.addEventListener('change', () => {
+      const preset = PRESETS[presetSelect.value];
+      if (!preset) return;
+      board.setBlueprint(preset);
+      applyTheme(themeSelect.value);
+      refreshInspector();
+    });
+
+    themeSelect.addEventListener('change', () => {
+      applyTheme(themeSelect.value);
+    });
+
+    dotSpacingInput.addEventListener('input', () => {
+      const val = Number(dotSpacingInput.value);
+      dotSpacingVal.textContent = `${val}px`;
+      board.setDotSettings({ dotSpacing: val });
+    });
+
+    dotSizeInput.addEventListener('input', () => {
+      const val = Number(dotSizeInput.value);
+      dotSizeVal.textContent = `${val}px`;
+      board.setDotSettings({ dotSize: val });
+    });
+
+    simulateBtn.addEventListener('click', () => {
+      board.simulateFlow();
+    });
+
+    toggleDrawerBtn.addEventListener('click', () => {
+      const isOpen = workspace.classList.toggle('drawer-open');
+      toggleDrawerBtn.classList.toggle('btn-active', isOpen);
+      toggleDrawerBtn.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) refreshInspector();
+    });
+
+    document.querySelectorAll('[data-inspector-tab]').forEach((tabBtn) => {
+      tabBtn.addEventListener('click', () => {
+        inspectorMode = tabBtn.dataset.inspectorTab;
+        document.querySelectorAll('[data-inspector-tab]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.inspectorTab === inspectorMode);
+        });
+        refreshInspector();
+      });
+    });
+
+    copyCodeBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(inspectorCode.textContent);
+        const old = copyCodeBtn.textContent;
+        copyCodeBtn.textContent = 'Copied!';
+        setTimeout(() => { copyCodeBtn.textContent = old; }, 1400);
+      } catch {
+        copyCodeBtn.textContent = 'Select & Copy';
+      }
+    });
+  </script>
+</body>
+</html>
